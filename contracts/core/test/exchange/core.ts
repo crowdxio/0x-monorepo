@@ -27,7 +27,6 @@ import { DummyNoReturnERC20TokenContract } from '../../generated-wrappers/dummy_
 import { ERC20ProxyContract } from '../../generated-wrappers/erc20_proxy';
 import { ERC721ProxyContract } from '../../generated-wrappers/erc721_proxy';
 import { ExchangeCancelEventArgs, ExchangeContract } from '../../generated-wrappers/exchange';
-import { IAssetDataContract } from '../../generated-wrappers/i_asset_data';
 import { MultiAssetProxyContract } from '../../generated-wrappers/multi_asset_proxy';
 import { ReentrantERC20TokenContract } from '../../generated-wrappers/reentrant_erc20_token';
 import { TestStaticCallReceiverContract } from '../../generated-wrappers/test_static_call_receiver';
@@ -39,11 +38,7 @@ import { ExchangeWrapper } from '../utils/exchange_wrapper';
 chaiSetup.configure();
 const expect = chai.expect;
 const blockchainLifecycle = new BlockchainLifecycle(web3Wrapper);
-const assetDataInterface = new IAssetDataContract(
-    artifacts.IAssetData.compilerOutput.abi,
-    constants.NULL_ADDRESS,
-    provider,
-);
+
 // tslint:disable:no-unnecessary-type-assertion
 describe('Exchange core', () => {
     let makerAddress: string;
@@ -773,10 +768,7 @@ describe('Exchange core', () => {
                 assetDataUtils.encodeERC20AssetData(erc20TokenA.address),
                 assetDataUtils.encodeERC20AssetData(erc20TokenB.address),
             ];
-            const makerAssetData = assetDataInterface.MultiAsset.getABIEncodedTransactionData(
-                makerAmounts,
-                makerNestedAssetData,
-            );
+            const makerAssetData = assetDataUtils.encodeMultiAssetData(makerAmounts, makerNestedAssetData);
             const makerAssetAmount = new BigNumber(1);
             const takerAssetData = assetDataUtils.encodeERC20AssetData(zrxToken.address);
             const takerAssetAmount = new BigNumber(10);
@@ -826,10 +818,7 @@ describe('Exchange core', () => {
                 assetDataUtils.encodeERC20AssetData(erc20TokenA.address),
                 assetDataUtils.encodeERC20AssetData(erc20TokenB.address),
             ];
-            const makerAssetData = assetDataInterface.MultiAsset.getABIEncodedTransactionData(
-                makerAmounts,
-                makerNestedAssetData,
-            );
+            const makerAssetData = assetDataUtils.encodeMultiAssetData(makerAmounts, makerNestedAssetData);
             const makerAssetAmount = new BigNumber(1);
             const takerAmounts = [new BigNumber(10), new BigNumber(1)];
             const takerAssetId = erc721TakerAssetIds[0];
@@ -837,10 +826,7 @@ describe('Exchange core', () => {
                 assetDataUtils.encodeERC20AssetData(zrxToken.address),
                 assetDataUtils.encodeERC721AssetData(erc721Token.address, takerAssetId),
             ];
-            const takerAssetData = assetDataInterface.MultiAsset.getABIEncodedTransactionData(
-                takerAmounts,
-                takerNestedAssetData,
-            );
+            const takerAssetData = assetDataUtils.encodeMultiAssetData(takerAmounts, takerNestedAssetData);
             const takerAssetAmount = new BigNumber(1);
             signedOrder = await orderFactory.newSignedOrderAsync({
                 makerAssetData,
@@ -896,10 +882,7 @@ describe('Exchange core', () => {
                 assetDataUtils.encodeERC20AssetData(erc20TokenA.address),
                 assetDataUtils.encodeERC20AssetData(erc20TokenB.address),
             ];
-            const makerAssetData = assetDataInterface.MultiAsset.getABIEncodedTransactionData(
-                makerAmounts,
-                makerNestedAssetData,
-            );
+            const makerAssetData = assetDataUtils.encodeMultiAssetData(makerAmounts, makerNestedAssetData);
             const makerAssetAmount = new BigNumber(30);
             const takerAssetData = assetDataUtils.encodeERC20AssetData(zrxToken.address);
             const takerAssetAmount = new BigNumber(10);
@@ -976,10 +959,7 @@ describe('Exchange core', () => {
                 assetDataUtils.encodeERC20AssetData(erc20TokenA.address),
                 assetDataUtils.encodeERC20AssetData(erc20TokenB.address),
             ];
-            const takerAssetData = assetDataInterface.MultiAsset.getABIEncodedTransactionData(
-                takerAmounts,
-                takerNestedAssetData,
-            );
+            const takerAssetData = assetDataUtils.encodeMultiAssetData(takerAmounts, takerNestedAssetData);
             const takerAssetAmount = new BigNumber(30);
             const makerAssetData = assetDataUtils.encodeERC20AssetData(zrxToken.address);
             const makerAssetAmount = new BigNumber(10);
