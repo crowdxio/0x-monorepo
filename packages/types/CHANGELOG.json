@@ -9,6 +9,10 @@
             {
                 "note": "Add RevertReasons for DutchAuction contract",
                 "pr": 1225
+            },
+            {
+                "note": "Add MultiAsset types",
+                "pr": 1363
             }
         ]
     },
