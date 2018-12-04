@@ -1,5 +1,14 @@
 [
     {
+        "version": "2.0.8",
+        "changes": [
+            {
+                "note": "Add `should` prefix to names of properties in EncodingRules and DecodingRules",
+                "pr": 1363
+            }
+        ]
+    },
+    {
         "timestamp": 1543448882,
         "version": "2.0.7",
         "changes": [
