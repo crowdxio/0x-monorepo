@@ -31,7 +31,7 @@
         "lint-contracts": "solhint -c ../.solhint.json contracts/**/**/**/**/*.sol"
     },
     "config": {
-        "abis": "generated-artifacts/@(DutchAuction|Forwarder).json"
+        "abis": "generated-artifacts/@(DutchAuction|Forwarder|OrderMatcher).json"
     },
     "repository": {
         "type": "git",

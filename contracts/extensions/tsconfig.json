@@ -6,6 +6,10 @@
         "resolveJsonModule": true
     },
     "include": ["./src/**/*", "./test/**/*", "./generated-wrappers/**/*"],
-    "files": ["./generated-artifacts/DutchAuction.json", "./generated-artifacts/Forwarder.json"],
+    "files": [
+        "./generated-artifacts/DutchAuction.json",
+        "./generated-artifacts/Forwarder.json",
+        "./generated-artifacts/OrderMatcher.json"
+    ],
     "exclude": ["./deploy/solc/solc_bin"]
 }
