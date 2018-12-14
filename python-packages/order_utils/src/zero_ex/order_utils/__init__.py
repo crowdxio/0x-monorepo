@@ -10,9 +10,10 @@ just this purpose.  To start it: ``docker run -d -p 8545:8545 0xorg/ganache-cli
 fence smart topic"``.
 """
 
+from copy import copy
 from enum import auto, Enum
 import json
-from typing import Dict, Tuple
+from typing import cast, Dict, Tuple
 from pkg_resources import resource_string
 
 from mypy_extensions import TypedDict
@@ -119,8 +120,8 @@ class Order(TypedDict):  # pylint: disable=too-many-instance-attributes
     takerFee: str
     expirationTimeSeconds: str
     salt: str
-    makerAssetData: str
-    takerAssetData: str
+    makerAssetData: bytes
+    takerAssetData: bytes
     exchangeAddress: str
 
 
@@ -135,8 +136,8 @@ def make_empty_order() -> Order:
         "takerAddress": _Constants.null_address,
         "senderAddress": _Constants.null_address,
         "feeRecipientAddress": _Constants.null_address,
-        "makerAssetData": _Constants.null_address,
-        "takerAssetData": _Constants.null_address,
+        "makerAssetData": (b"\x00") * 20,
+        "takerAssetData": (b"\x00") * 20,
         "salt": "0",
         "makerFee": "0",
         "takerFee": "0",
@@ -208,6 +209,34 @@ def generate_order_hash_hex(order: Order) -> str:
         + eip712_domain_struct_hash
         + eip712_order_struct_hash
     ).hex()
+
+
+class OrderInfo(TypedDict):
+    """Stuff."""
+
+
+def get_order_info(provider: BaseProvider, order: Order) -> OrderInfo:
+    """Get order info from Exchange smart contract."""
+    assert_is_provider(provider, "provider")
+
+    web3_instance = Web3(provider)
+    # false positive from pylint: disable=no-member
+    network_id = web3_instance.net.version
+    contract_address = _Constants.network_to_exchange_addr[network_id]
+
+    order_to_validate = cast(Dict[str, str], copy(order))
+    order_to_validate["exchangeAddress"] = contract_address
+    order_to_validate["makerAssetData"] = "0x" + order["makerAssetData"].hex()
+    order_to_validate["takerAssetData"] = "0x" + order["takerAssetData"].hex()
+    assert_valid(order_to_validate, "/orderSchema")
+
+    # false positive from pylint: disable=no-member
+    contract: datatypes.Contract = web3_instance.eth.contract(
+        address=to_checksum_address(contract_address),
+        abi=_Constants.contract_name_to_abi("Exchange"),
+    )
+
+    return contract.call().getOrderInfo(order)
 
 
 def is_valid_signature(

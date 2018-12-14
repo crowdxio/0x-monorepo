@@ -39,7 +39,7 @@ class LintCommand(distutils.command.build_py.build_py):
             # docstring style checker:
             "pydocstyle src test setup.py".split(),
             # static type checker:
-            "mypy src test setup.py".split(),
+            "mypy --follow-imports=silent src test setup.py".split(),
             # security issue checker:
             "bandit -r src ./setup.py".split(),
             # general linter:
@@ -176,6 +176,10 @@ setup(
         "jsonschema",
         "mypy_extensions",
         "web3",
+    ],
+    dependency_links=[
+        "http://github.com/0xProject/web3.py/tarball/feature"
+        + "/naive-tuple-support#egg=web3"
     ],
     extras_require={
         "dev": [
