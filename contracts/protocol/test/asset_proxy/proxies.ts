@@ -76,6 +76,7 @@ describe('Asset Transfer Proxies', () => {
         await blockchainLifecycle.revertAsync();
     });
     before(async () => {
+        console.log('1');
         const accounts = await web3Wrapper.getAvailableAddressesAsync();
         const usedAddresses = ([owner, notAuthorized, authorized, fromAddress, toAddress] = _.slice(accounts, 0, 5));
 
@@ -91,6 +92,7 @@ describe('Asset Transfer Proxies', () => {
             txDefaults,
         );
 
+        console.log('2');
         // Configure ERC20Proxy
         await web3Wrapper.awaitTransactionSuccessAsync(
             await erc20Proxy.addAuthorizedAddress.sendTransactionAsync(authorized, {
@@ -98,12 +100,15 @@ describe('Asset Transfer Proxies', () => {
             }),
             constants.AWAIT_TRANSACTION_MINED_MS,
         );
+        console.log('3');
         await web3Wrapper.awaitTransactionSuccessAsync(
             await erc20Proxy.addAuthorizedAddress.sendTransactionAsync(multiAssetProxy.address, {
                 from: owner,
             }),
             constants.AWAIT_TRANSACTION_MINED_MS,
         );
+
+        console.log('4');
 
         // Configure ERC721Proxy
         await web3Wrapper.awaitTransactionSuccessAsync(
@@ -112,12 +117,16 @@ describe('Asset Transfer Proxies', () => {
             }),
             constants.AWAIT_TRANSACTION_MINED_MS,
         );
+
+        console.log('5');
         await web3Wrapper.awaitTransactionSuccessAsync(
             await erc721Proxy.addAuthorizedAddress.sendTransactionAsync(multiAssetProxy.address, {
                 from: owner,
             }),
             constants.AWAIT_TRANSACTION_MINED_MS,
         );
+
+        console.log('6');
 
         // Configure MultiAssetProxy
         await web3Wrapper.awaitTransactionSuccessAsync(
@@ -126,18 +135,24 @@ describe('Asset Transfer Proxies', () => {
             }),
             constants.AWAIT_TRANSACTION_MINED_MS,
         );
+
+        console.log('7');
         await web3Wrapper.awaitTransactionSuccessAsync(
             await multiAssetProxy.registerAssetProxy.sendTransactionAsync(erc20Proxy.address, {
                 from: owner,
             }),
             constants.AWAIT_TRANSACTION_MINED_MS,
         );
+
+        console.log('8');
         await web3Wrapper.awaitTransactionSuccessAsync(
             await multiAssetProxy.registerAssetProxy.sendTransactionAsync(erc721Proxy.address, {
                 from: owner,
             }),
             constants.AWAIT_TRANSACTION_MINED_MS,
         );
+
+        console.log('9');
 
         // Deploy and configure ERC20 tokens
         const numDummyErc20ToDeploy = 2;
@@ -164,11 +179,14 @@ describe('Asset Transfer Proxies', () => {
             constants.DUMMY_TOKEN_TOTAL_SUPPLY,
         );
 
+        console.log('10');
+
         await erc20Wrapper.setBalancesAndAllowancesAsync();
         await web3Wrapper.awaitTransactionSuccessAsync(
             await noReturnErc20Token.setBalance.sendTransactionAsync(fromAddress, constants.INITIAL_ERC20_BALANCE),
             constants.AWAIT_TRANSACTION_MINED_MS,
         );
+        console.log('11');
         await web3Wrapper.awaitTransactionSuccessAsync(
             await noReturnErc20Token.approve.sendTransactionAsync(
                 erc20Proxy.address,
@@ -177,6 +195,7 @@ describe('Asset Transfer Proxies', () => {
             ),
             constants.AWAIT_TRANSACTION_MINED_MS,
         );
+        console.log('12');
         await web3Wrapper.awaitTransactionSuccessAsync(
             await multipleReturnErc20Token.setBalance.sendTransactionAsync(
                 fromAddress,
@@ -184,6 +203,7 @@ describe('Asset Transfer Proxies', () => {
             ),
             constants.AWAIT_TRANSACTION_MINED_MS,
         );
+        console.log('13');
         await web3Wrapper.awaitTransactionSuccessAsync(
             await multipleReturnErc20Token.approve.sendTransactionAsync(
                 erc20Proxy.address,
@@ -192,6 +212,7 @@ describe('Asset Transfer Proxies', () => {
             ),
             constants.AWAIT_TRANSACTION_MINED_MS,
         );
+        console.log('14');
 
         // Deploy and configure ERC721 tokens and receiver
         [erc721TokenA, erc721TokenB] = await erc721Wrapper.deployDummyTokensAsync();
@@ -200,9 +221,12 @@ describe('Asset Transfer Proxies', () => {
             provider,
             txDefaults,
         );
+        console.log('15');
 
         await erc721Wrapper.setBalancesAndAllowancesAsync();
+        console.log('16');
         const erc721Balances = await erc721Wrapper.getBalancesAsync();
+        console.log('17');
         erc721AFromTokenId = erc721Balances[fromAddress][erc721TokenA.address][0];
         erc721BFromTokenId = erc721Balances[fromAddress][erc721TokenB.address][0];
     });
