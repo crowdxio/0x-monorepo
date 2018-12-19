@@ -1065,9 +1065,6 @@ describe('Exchange core', () => {
             const expectedOrderHash = orderHashUtils.getOrderHashHex(signedOrder);
             const expectedTakerAssetFilledAmount = new BigNumber(0);
             const expectedOrderStatus = OrderStatus.FILLABLE;
-            console.log('*'.repeat(150));
-            console.log(orderInfo);
-            console.log('*'.repeat(150));
             expect(orderInfo.orderHash).to.be.equal(expectedOrderHash);
             expect(orderInfo.orderTakerAssetFilledAmount).to.be.bignumber.equal(expectedTakerAssetFilledAmount);
             expect(orderInfo.orderStatus).to.be.equal(expectedOrderStatus);
