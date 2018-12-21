@@ -53,58 +53,69 @@ contract MixinWeth is
     /// @dev Transfers feePercentage of WETH spent on primary orders to feeRecipient.
     ///      Refunds any excess ETH to msg.sender.
     /// @param wethSoldExcludingFeeOrders Amount of WETH sold when filling primary orders.
-    /// @param wethSoldForZrx Amount of WETH sold when purchasing ZRX required for primary order fees.
-    /// @param feePercentage Percentage of WETH sold that will payed as fee to forwarding contract feeRecipient.
-    /// @param feeRecipient Address that will receive ETH when orders are filled.
+    /// @param platformFeePercentage Percentage of WETH sold will be payed to the fee recipient (crowd platoform)
+    /// @param platformFeeRecipient Address that will receive ETH when orders are filled.
+    /// @param creativeFeeRecipient Address that will receive ETH when orders are filled.
     function transferEthFeeAndRefund(
         uint256 wethSoldExcludingFeeOrders,
-        uint256 wethSoldForZrx,
-        uint256 feePercentage,
-        address feeRecipient
+        uint256 platformFeePercentage,
+        address platformFeeRecipient,
+        address creativeFeeRecipient
     )
-        internal
+    internal
     {
-        // Ensure feePercentage is less than 5%.
+        // Ensure feePercentage is less than 10%.
         require(
-            feePercentage <= MAX_FEE_PERCENTAGE,
+            platformFeePercentage <= MAX_FEE_PERCENTAGE_CROWDX,
             "FEE_PERCENTAGE_TOO_LARGE"
         );
 
         // Ensure that no extra WETH owned by this contract has been sold.
-        uint256 wethSold = safeAdd(wethSoldExcludingFeeOrders, wethSoldForZrx);
         require(
-            wethSold <= msg.value,
+            wethSoldExcludingFeeOrders <= msg.value,
             "OVERSOLD_WETH"
         );
 
         // Calculate amount of WETH that hasn't been sold.
-        uint256 wethRemaining = safeSub(msg.value, wethSold);
+        uint256 wethRemaining = safeSub(msg.value, wethSoldExcludingFeeOrders);
 
         // Calculate ETH fee to pay to feeRecipient.
-        uint256 ethFee = getPartialAmountFloor(
-            feePercentage,
+        uint256 ethFeePlatform = getPartialAmountFloor(
+            platformFeePercentage,
             PERCENTAGE_DENOMINATOR,
             wethSoldExcludingFeeOrders
         );
 
+        uint256 ethFeeCreative = getPartialAmountFloor(
+            WETH_FILL_PERCENTAGE_CREATIVE_CROWDX,
+            PERCENTAGE_DENOMINATOR,
+            wethSoldExcludingFeeOrders
+        );
+
+        uint256 totalFees = safeAdd(ethFeePlatform, ethFeeCreative);
+
         // Ensure fee is less than amount of WETH remaining.
         require(
-            ethFee <= wethRemaining,
+            totalFees <= wethRemaining,
             "INSUFFICIENT_ETH_REMAINING"
         );
-    
+
         // Do nothing if no WETH remaining
         if (wethRemaining > 0) {
             // Convert remaining WETH to ETH
             ETHER_TOKEN.withdraw(wethRemaining);
 
             // Pay ETH to feeRecipient
-            if (ethFee > 0) {
-                feeRecipient.transfer(ethFee);
+            if (ethFeePlatform > 0) {
+                platformFeeRecipient.transfer(ethFeePlatform);
+            }
+
+            if (ethFeeCreative > 0) {
+                creativeFeeRecipient.transfer(ethFeeCreative);
             }
 
             // Refund remaining ETH to msg.sender.
-            uint256 ethRefund = safeSub(wethRemaining, ethFee);
+            uint256 ethRefund = safeSub(wethRemaining, totalFees);
             if (ethRefund > 0) {
                 msg.sender.transfer(ethRefund);
             }

@@ -125,6 +125,38 @@ contract MixinExchangeWrapper is
         return totalFillResults;
     }
 
+    function payFeeBasedOnTheTradedAmount(uint256 amount, address feeRecipient)
+    internal
+    returns (bool)
+    {
+        uint256 fee = getPartialAmountFloor(
+            WETH_FILL_PERCENTAGE_CREATIVE_CROWDX,
+            PERCENTAGE_DENOMINATOR,
+            amount
+        );
+
+
+        if (fee > 0) {
+
+            //            // Transfer weth - requires approval beforehand
+            //            bytes memory wethAssetData = WETH_ASSET_DATA;
+            //            address wethToken;
+            //            assembly {
+            //                wethToken := mload(add(wethAssetData, 36))
+            //            }
+            //
+            //            require(wethToken != address(0), 'INVALID_WETH_ASSET_ADDRESS');
+            //
+            //            IERC20Token(wethToken).transferFrom(msg.sender, feeRecipient, fee);
+
+            // Transfer ETH
+            // ETHER_TOKEN.withdraw(fee);
+            feeRecipient.transfer(fee);
+        }
+
+        return true;
+    }
+
     /// @dev Synchronously executes multiple fill orders in a single transaction until total amount is bought by taker.
     ///      Returns false if the transaction would otherwise revert.
     ///      The asset being sold by taker must always be WETH.
@@ -145,6 +177,22 @@ contract MixinExchangeWrapper is
 
         uint256 ordersLength = orders.length;
         for (uint256 i = 0; i != ordersLength; i++) {
+
+            require(orders[i].makerFee == 0,
+                "MAKER_FEE_OTHER_THAN_ZERO"
+            );
+
+            require(orders[i].takerFee == 0,
+                "TAKER_FEE_OTHER_THAN_ZERO"
+            );
+
+            require(orders[i].makerAssetAmount == 1,
+                "AMOUNT_OTHER_THAN_ONE"
+            );
+
+            require(orders[i].feeRecipientAddress != address(0),
+                "ORDER_FEE_RECIPIENT_NOT_SUPPLIED"
+            );
 
             // We assume that asset being bought by taker is the same for each order.
             // We assume that asset being sold by taker is WETH for each order.

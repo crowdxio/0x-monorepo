@@ -45,20 +45,25 @@ contract MixinForwarderCore is
     constructor ()
         public
     {
-        address proxyAddress = EXCHANGE.getAssetProxy(ERC20_DATA_ID);
+        address proxyAddressERC20 = EXCHANGE.getAssetProxy(ERC20_DATA_ID);
+        address proxyAddressERC721 = EXCHANGE.getAssetProxy(ERC721_DATA_ID);
         require(
-            proxyAddress != address(0),
+            proxyAddressERC20 != address(0),
             "UNREGISTERED_ASSET_PROXY"
         );
-        ETHER_TOKEN.approve(proxyAddress, MAX_UINT);
-        ZRX_TOKEN.approve(proxyAddress, MAX_UINT);
+        require(
+            proxyAddressERC721 != address(0),
+            "UNREGISTERED_ASSET_PROXY"
+        );
+
+        ETHER_TOKEN.approve(proxyAddressERC20, MAX_UINT);
     }
 
     /// @dev Purchases as much of orders' makerAssets as possible by selling up to 95% of transaction's ETH value.
     ///      Any ZRX required to pay fees for primary orders will automatically be purchased by this contract.
     ///      5% of ETH value is reserved for paying fees to order feeRecipients (in ZRX) and forwarding contract feeRecipient (in ETH).
     ///      Any ETH not spent will be refunded to sender.
-    /// @param orders Array of order specifications used containing desired makerAsset and WETH as takerAsset. 
+    /// @param orders Array of order specifications used containing desired makerAsset and WETH as takerAsset.
     /// @param signatures Proofs that orders have been created by makers.
     /// @param feeOrders Array of order specifications containing ZRX as makerAsset and WETH as takerAsset. Used to purchase ZRX for primary order fees.
     /// @param feeSignatures Proofs that feeOrders have been created by makers.
@@ -80,61 +85,81 @@ contract MixinForwarderCore is
             FillResults memory feeOrderFillResults
         )
     {
+        require(feeOrders.length == 0,
+            "FEE_ORDERS_ARRAY_NOT_EMPTY"
+        );
+
+        require(feeRecipient != address(0),
+            "FEE_RECIPIENT_NOT_SUPPLIED"
+        );
+
+        // Parse the assetProxyId. We do not use `LibBytes.readBytes4` for gas efficiency reasons.
+        bytes4 assetProxyId;
+        bytes memory assetData = orders[0].makerAssetData;
+        assembly {
+            assetProxyId := and(mload(
+            add(assetData, 32)),
+            0xFFFFFFFF00000000000000000000000000000000000000000000000000000000
+            )
+        }
+
+        require(assetProxyId == ERC721_DATA_ID,
+            "ASSET_ID_OTHER_THAN_ERC721"
+        );
+
+        uint256 ordersLength = orders.length;
+        for (uint256 i = 0; i != ordersLength; i++) {
+            require(orders[i].makerFee == 0,
+                "MAKER_FEE_OTHER_THAN_ZERO"
+            );
+
+            require(orders[i].takerFee == 0,
+                "TAKER_FEE_OTHER_THAN_ZERO"
+            );
+
+            require(orders[i].makerAssetAmount == 1,
+                "AMOUNT_OTHER_THAN_ONE"
+            );
+
+            require(orders[i].feeRecipientAddress != address(0),
+                "ORDER_FEE_RECIPIENT_NOT_SUPPLIED"
+            );
+        }
+
         // Convert ETH to WETH.
         convertEthToWeth();
 
         uint256 wethSellAmount;
-        uint256 zrxBuyAmount;
         uint256 makerAssetAmountPurchased;
-        if (orders[0].makerAssetData.equals(ZRX_ASSET_DATA)) {
-            // Calculate amount of WETH that won't be spent on ETH fees.
+        {
+            // 10% of WETH is reserved for filling paying feeRecipient (the crowdx exchange).
             wethSellAmount = getPartialAmountFloor(
-                PERCENTAGE_DENOMINATOR,
-                safeAdd(PERCENTAGE_DENOMINATOR, feePercentage),
-                msg.value
-            );
-            // Market sell available WETH.
-            // ZRX fees are paid with this contract's balance.
-            orderFillResults = marketSellWeth(
-                orders,
-                wethSellAmount,
-                signatures
-            );
-            // The fee amount must be deducted from the amount transfered back to sender.
-            makerAssetAmountPurchased = safeSub(orderFillResults.makerAssetFilledAmount, orderFillResults.takerFeePaid);
-        } else {
-            // 5% of WETH is reserved for filling feeOrders and paying feeRecipient.
-            wethSellAmount = getPartialAmountFloor(
-                MAX_WETH_FILL_PERCENTAGE,
+                MAX_WETH_FILL_PERCENTAGE_CROWDX,
                 PERCENTAGE_DENOMINATOR,
                 msg.value
             );
-            // Market sell 95% of WETH.
+            // Market sell 90% of WETH.
             // ZRX fees are payed with this contract's balance.
             orderFillResults = marketSellWeth(
                 orders,
                 wethSellAmount,
                 signatures
             );
-            // Buy back all ZRX spent on fees.
-            zrxBuyAmount = orderFillResults.takerFeePaid;
-            feeOrderFillResults = marketBuyExactZrxWithWeth(
-                feeOrders,
-                zrxBuyAmount,
-                feeSignatures
-            );
+
             makerAssetAmountPurchased = orderFillResults.makerAssetFilledAmount;
         }
 
         // Transfer feePercentage of total ETH spent on primary orders to feeRecipient.
         // Refund remaining ETH to msg.sender.
-        transferEthFeeAndRefund(
-            orderFillResults.takerAssetFilledAmount,
-            feeOrderFillResults.takerAssetFilledAmount,
-            feePercentage,
-            feeRecipient
-        );
+        //        address feeRecipientCreative = orders[0].feeRecipientAddress;
+        //        transferEthFeeAndRefund(
+        //            orderFillResults.takerAssetFilledAmount,
+        //            feePercentage,
+        //            feeRecipient,
+        //            feeRecipientCreative
+        //        );
 
+        require(makerAssetAmountPurchased == 1, 'Invalid amount');
         // Transfer purchased assets to msg.sender.
         transferAssetToSender(orders[0].makerAssetData, makerAssetAmountPurchased);
     }
@@ -142,7 +167,7 @@ contract MixinForwarderCore is
     /// @dev Attempt to purchase makerAssetFillAmount of makerAsset by selling ETH provided with transaction.
     ///      Any ZRX required to pay fees for primary orders will automatically be purchased by this contract.
     ///      Any ETH not spent will be refunded to sender.
-    /// @param orders Array of order specifications used containing desired makerAsset and WETH as takerAsset. 
+    /// @param orders Array of order specifications used containing desired makerAsset and WETH as takerAsset.
     /// @param makerAssetFillAmount Desired amount of makerAsset to purchase.
     /// @param signatures Proofs that orders have been created by makers.
     /// @param feeOrders Array of order specifications containing ZRX as makerAsset and WETH as takerAsset. Used to purchase ZRX for primary order fees.
@@ -166,46 +191,55 @@ contract MixinForwarderCore is
             FillResults memory feeOrderFillResults
         )
     {
+        require(feeOrders.length == 0,
+            "FEE_ORDERS_ARRAY_NOT_EMPTY"
+        );
+
+        require(feeRecipient != address(0),
+            "FEE_RECIPIENT_NOT_SUPPLIED"
+        );
+
+        // Parse the assetProxyId. We do not use `LibBytes.readBytes4` for gas efficiency reasons.
+        bytes4 assetProxyId;
+        bytes memory assetData = orders[0].makerAssetData;
+        assembly {
+            assetProxyId := and(mload(
+            add(assetData, 32)),
+            0xFFFFFFFF00000000000000000000000000000000000000000000000000000000
+            )
+        }
+
+        require(assetProxyId == ERC721_DATA_ID,
+            "ASSET_ID_OTHER_THAN_ERC721"
+        );
+
+        uint256 ordersLength = orders.length;
+        for (uint256 i = 0; i != ordersLength; i++) {
+
+        }
         // Convert ETH to WETH.
         convertEthToWeth();
 
-        uint256 zrxBuyAmount;
         uint256 makerAssetAmountPurchased;
-        if (orders[0].makerAssetData.equals(ZRX_ASSET_DATA)) {
-            // If the makerAsset is ZRX, it is not necessary to pay fees out of this
-            // contracts's ZRX balance because fees are factored into the price of the order.
-            orderFillResults = marketBuyExactZrxWithWeth(
-                orders,
-                makerAssetFillAmount,
-                signatures
-            );
-            // The fee amount must be deducted from the amount transfered back to sender.
-            makerAssetAmountPurchased = safeSub(orderFillResults.makerAssetFilledAmount, orderFillResults.takerFeePaid);
-        } else {
+        {
             // Attemp to purchase desired amount of makerAsset.
-            // ZRX fees are payed with this contract's balance.
             orderFillResults = marketBuyExactAmountWithWeth(
                 orders,
                 makerAssetFillAmount,
                 signatures
             );
-            // Buy back all ZRX spent on fees.
-            zrxBuyAmount = orderFillResults.takerFeePaid;
-            feeOrderFillResults = marketBuyExactZrxWithWeth(
-                feeOrders,
-                zrxBuyAmount,
-                feeSignatures
-            );
+
             makerAssetAmountPurchased = orderFillResults.makerAssetFilledAmount;
         }
 
         // Transfer feePercentage of total ETH spent on primary orders to feeRecipient.
         // Refund remaining ETH to msg.sender.
+        address feeRecipientCreative = orders[0].feeRecipientAddress;
         transferEthFeeAndRefund(
             orderFillResults.takerAssetFilledAmount,
-            feeOrderFillResults.takerAssetFilledAmount,
             feePercentage,
-            feeRecipient
+            feeRecipient,
+            feeRecipientCreative
         );
 
         // Transfer purchased assets to msg.sender.

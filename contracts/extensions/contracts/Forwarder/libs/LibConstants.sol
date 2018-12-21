@@ -34,6 +34,11 @@ contract LibConstants {
     uint256 constant internal PERCENTAGE_DENOMINATOR = 10**18; 
     uint256 constant internal MAX_FEE_PERCENTAGE = 5 * PERCENTAGE_DENOMINATOR / 100;         // 5%
     uint256 constant internal MAX_WETH_FILL_PERCENTAGE = 95 * PERCENTAGE_DENOMINATOR / 100;  // 95%
+
+    uint256 constant internal MAX_FEE_PERCENTAGE_CROWDX = 1 * PERCENTAGE_DENOMINATOR / 100;            // 10%
+    uint256 constant internal MAX_WETH_FILL_PERCENTAGE_CROWDX = 90 * PERCENTAGE_DENOMINATOR / 100;      // 90%
+    uint256 constant internal WETH_FILL_PERCENTAGE_CREATIVE_CROWDX = 9 * PERCENTAGE_DENOMINATOR / 100;  // 9%
+    uint256 constant internal WETH_FILL_PERCENTAGE_PLATFORM_CROWDX = 1 * PERCENTAGE_DENOMINATOR / 100;  // 1%
  
      // solhint-disable var-name-mixedcase
     IExchange internal EXCHANGE;

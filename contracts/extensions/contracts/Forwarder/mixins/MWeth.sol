@@ -28,14 +28,14 @@ contract MWeth {
     /// @dev Transfers feePercentage of WETH spent on primary orders to feeRecipient.
     ///      Refunds any excess ETH to msg.sender.
     /// @param wethSoldExcludingFeeOrders Amount of WETH sold when filling primary orders.
-    /// @param wethSoldForZrx Amount of WETH sold when purchasing ZRX required for primary order fees.
-    /// @param feePercentage Percentage of WETH sold that will payed as fee to forwarding contract feeRecipient.
-    /// @param feeRecipient Address that will receive ETH when orders are filled.
+    /// @param platformFeePercentage Percentage of WETH sold will be payed to the fee recipient (crowd platoform)
+    /// @param platformFeeRecipient Address that will receive ETH when orders are filled.
+    /// @param creativeFeeRecipient Address that will receive ETH when orders are filled.
     function transferEthFeeAndRefund(
         uint256 wethSoldExcludingFeeOrders,
-        uint256 wethSoldForZrx,
-        uint256 feePercentage,
-        address feeRecipient
+        uint256 platformFeePercentage,
+        address platformFeeRecipient,
+        address creativeFeeRecipient
     )
-        internal;
+    internal;
 }
