@@ -99,6 +99,26 @@ contract MixinExchangeWrapper is
         uint256 ordersLength = orders.length;
         for (uint256 i = 0; i != ordersLength; i++) {
 
+            require(orders[i].makerFee == 0,
+                "MAKER_FEE_OTHER_THAN_ZERO"
+            );
+
+            require(orders[i].takerFee == 0,
+                "TAKER_FEE_OTHER_THAN_ZERO"
+            );
+
+            require(orders[i].makerAssetAmount == 1,
+                "AMOUNT_OTHER_THAN_ONE"
+            );
+
+            require(orders[i].feeRecipientAddress != address(0),
+                "ORDER_FEE_RECIPIENT_NOT_SUPPLIED"
+            );
+
+            require(orders[i].feeRecipientAddress != orders[0].feeRecipientAddress,
+                "MAKER_FEE_OTHER_THAN_ZERO"
+            );
+
             // We assume that asset being bought by taker is the same for each order.
             // We assume that asset being sold by taker is WETH for each order.
             orders[i].makerAssetData = makerAssetData;
@@ -151,7 +171,7 @@ contract MixinExchangeWrapper is
 
             // Transfer ETH
             // ETHER_TOKEN.withdraw(fee);
-            feeRecipient.transfer(fee);
+            // feeRecipient.transfer(fee);
         }
 
         return true;

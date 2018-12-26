@@ -133,7 +133,7 @@ describe(ContractName.Forwarder, () => {
 			feeRecipientAddress: feeRecipientCreative,
 			makerAssetData: assetDataUtils.encodeERC20AssetData(defaultMakerAssetAddress),
 			takerAssetData: assetDataUtils.encodeERC20AssetData(defaultTakerAssetAddress),
-			makerAssetAmount: Web3Wrapper.toBaseUnitAmount(new BigNumber(200), DECIMALS_DEFAULT),
+			makerAssetAmount: Web3Wrapper.toBaseUnitAmount(new BigNumber(1), DECIMALS_DEFAULT),
 			takerAssetAmount: Web3Wrapper.toBaseUnitAmount(new BigNumber(10), DECIMALS_DEFAULT),
 			makerFee: Web3Wrapper.toBaseUnitAmount(new BigNumber(1), DECIMALS_DEFAULT),
 			takerFee: Web3Wrapper.toBaseUnitAmount(new BigNumber(0), DECIMALS_DEFAULT),
@@ -199,15 +199,15 @@ describe(ContractName.Forwarder, () => {
 			);
 		});
 	});
-	describe('marketBuyOrdersWithEth ', () => {
+	describe('marketBuyOrdersWithEth', () => {
 		it('should buy an ERC721 asset from a single order', async () => {
 			const makerAssetId = erc721MakerAssetIds[0];
 			orderWithoutFee = await orderFactory.newSignedOrderAsync({
-				makerAssetAmount: new BigNumber(1),
-				makerAssetData: assetDataUtils.encodeERC721AssetData(erc721Token.address, makerAssetId),
 				feeRecipientAddress: feeRecipientCreative,
 				makerFee: Web3Wrapper.toBaseUnitAmount(new BigNumber(0), DECIMALS_DEFAULT),
 				takerFee: Web3Wrapper.toBaseUnitAmount(new BigNumber(0), DECIMALS_DEFAULT),
+				makerAssetAmount: new BigNumber(1),
+				makerAssetData: assetDataUtils.encodeERC721AssetData(erc721Token.address, makerAssetId),
 
 			});
 			const orders = [orderWithoutFee];
@@ -261,6 +261,68 @@ describe(ContractName.Forwarder, () => {
 			expect(forwarderEthBalance).to.be.bignumber.equal(constants.ZERO_AMOUNT);
 		});
 	});
+	/*
+	describe('marketSellOrdersWithEth', () => {
+		it('should fill a single order', async () => {
+			const makerAssetId = erc721MakerAssetIds[0];
+			orderWithoutFee = await orderFactory.newSignedOrderAsync({
+				makerAssetAmount: new BigNumber(1),
+				makerAssetData: assetDataUtils.encodeERC721AssetData(erc721Token.address, makerAssetId),
+				feeRecipientAddress: feeRecipientCreative,
+				makerFee: Web3Wrapper.toBaseUnitAmount(new BigNumber(0), DECIMALS_DEFAULT),
+				takerFee: Web3Wrapper.toBaseUnitAmount(new BigNumber(0), DECIMALS_DEFAULT),
+
+			});
+			const orders = [orderWithoutFee];
+			const feeOrders: SignedOrder[] = [];
+			const extraFeePercentageCrowdx = 10;
+			const ethValue = orderWithFee.takerAssetAmount.add(orderWithFee.takerAssetAmount.dividedToIntegerBy(extraFeePercentageCrowdx));
+
+			const platformFeePercentage = 1;
+			const creativeFeePercentage = 9;
+			feePercentage = ForwarderWrapper.getPercentageOfValue(constants.PERCENTAGE_DENOMINATOR, platformFeePercentage);
+			const platformEthBalanceBefore = await web3Wrapper.getBalanceInWeiAsync(feeRecipientPlatform);
+
+			tx = await forwarderWrapper.marketSellOrdersWithEthAsync(
+				orders,
+				feeOrders,
+				{
+					from: takerAddress,
+					value: ethValue,
+				},
+				{feePercentage, feeRecipient: feeRecipientPlatform},
+			);
+
+			const takerEthBalanceAfter = await web3Wrapper.getBalanceInWeiAsync(takerAddress);
+			const forwarderEthBalance = await web3Wrapper.getBalanceInWeiAsync(forwarderContract.address);
+			const newBalances = await erc20Wrapper.getBalancesAsync();
+
+			const primaryTakerAssetFillAmount = ForwarderWrapper.getPercentageOfValue(
+				ethValue,
+				MAX_WETH_FILL_PERCENTAGE,
+			);
+			const makerAssetFillAmount = primaryTakerAssetFillAmount
+				.times(orderWithoutFee.makerAssetAmount)
+				.dividedToIntegerBy(orderWithoutFee.takerAssetAmount);
+			const totalEthSpent = primaryTakerAssetFillAmount.plus(gasPrice.times(tx.gasUsed));
+
+			expect(takerEthBalanceAfter).to.be.bignumber.equal(takerEthBalanceBefore.minus(totalEthSpent));
+			expect(newBalances[makerAddress][defaultMakerAssetAddress]).to.be.bignumber.equal(
+				erc20Balances[makerAddress][defaultMakerAssetAddress].minus(makerAssetFillAmount),
+			);
+			expect(newBalances[takerAddress][defaultMakerAssetAddress]).to.be.bignumber.equal(
+				erc20Balances[takerAddress][defaultMakerAssetAddress].plus(makerAssetFillAmount),
+			);
+			expect(newBalances[makerAddress][weth.address]).to.be.bignumber.equal(
+				erc20Balances[makerAddress][weth.address].plus(primaryTakerAssetFillAmount),
+			);
+			expect(newBalances[forwarderContract.address][weth.address]).to.be.bignumber.equal(constants.ZERO_AMOUNT);
+			expect(newBalances[forwarderContract.address][defaultMakerAssetAddress]).to.be.bignumber.equal(
+				constants.ZERO_AMOUNT,
+			);
+			expect(forwarderEthBalance).to.be.bignumber.equal(constants.ZERO_AMOUNT);
+		});
+	}); */
 });
 // tslint:disable:max-file-line-count
 // tslint:enable:no-unnecessary-type-assertion

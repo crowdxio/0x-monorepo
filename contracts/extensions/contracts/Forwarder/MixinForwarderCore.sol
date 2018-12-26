@@ -107,25 +107,6 @@ contract MixinForwarderCore is
             "ASSET_ID_OTHER_THAN_ERC721"
         );
 
-        uint256 ordersLength = orders.length;
-        for (uint256 i = 0; i != ordersLength; i++) {
-            require(orders[i].makerFee == 0,
-                "MAKER_FEE_OTHER_THAN_ZERO"
-            );
-
-            require(orders[i].takerFee == 0,
-                "TAKER_FEE_OTHER_THAN_ZERO"
-            );
-
-            require(orders[i].makerAssetAmount == 1,
-                "AMOUNT_OTHER_THAN_ONE"
-            );
-
-            require(orders[i].feeRecipientAddress != address(0),
-                "ORDER_FEE_RECIPIENT_NOT_SUPPLIED"
-            );
-        }
-
         // Convert ETH to WETH.
         convertEthToWeth();
 
@@ -151,15 +132,14 @@ contract MixinForwarderCore is
 
         // Transfer feePercentage of total ETH spent on primary orders to feeRecipient.
         // Refund remaining ETH to msg.sender.
-        //        address feeRecipientCreative = orders[0].feeRecipientAddress;
-        //        transferEthFeeAndRefund(
-        //            orderFillResults.takerAssetFilledAmount,
-        //            feePercentage,
-        //            feeRecipient,
-        //            feeRecipientCreative
-        //        );
+        address feeRecipientCreative = orders[0].feeRecipientAddress;
+        transferEthFeeAndRefund(
+            orderFillResults.takerAssetFilledAmount,
+            feePercentage,
+            feeRecipient,
+            feeRecipientCreative
+        );
 
-        require(makerAssetAmountPurchased == 1, 'Invalid amount');
         // Transfer purchased assets to msg.sender.
         transferAssetToSender(orders[0].makerAssetData, makerAssetAmountPurchased);
     }
@@ -167,7 +147,7 @@ contract MixinForwarderCore is
     /// @dev Attempt to purchase makerAssetFillAmount of makerAsset by selling ETH provided with transaction.
     ///      Any ZRX required to pay fees for primary orders will automatically be purchased by this contract.
     ///      Any ETH not spent will be refunded to sender.
-    /// @param orders Array of order specifications used containing desired makerAsset and WETH as takerAsset.
+    /// @param orders Array of order speciefications used containing desired makerAsset and WETH as takerAsset.
     /// @param makerAssetFillAmount Desired amount of makerAsset to purchase.
     /// @param signatures Proofs that orders have been created by makers.
     /// @param feeOrders Array of order specifications containing ZRX as makerAsset and WETH as takerAsset. Used to purchase ZRX for primary order fees.
@@ -213,10 +193,6 @@ contract MixinForwarderCore is
             "ASSET_ID_OTHER_THAN_ERC721"
         );
 
-        uint256 ordersLength = orders.length;
-        for (uint256 i = 0; i != ordersLength; i++) {
-
-        }
         // Convert ETH to WETH.
         convertEthToWeth();
 
